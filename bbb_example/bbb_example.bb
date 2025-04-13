@@ -4,9 +4,10 @@ LICENSE = "MIT"
 
 LICENSE_FILES_CHECKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
-SRC_URI = git://github.com/ganm708/yocto_tutorial.git;protocol=https;branch=main
+SRC_URI = "git://github.com/ganm708/yocto_tutorial.git;protocol=https;branch=main;rev=586ecb54b5092e20bc96c1ada396ca81b5585cf2"
+#SRCREV = "586ecb54b5092e20bc96c1ada396ca81b5585cf2"
 
-SRC_URI:append = file://0001-patch-example.patch
+#SRC_URI:append = " file://0001-patch-example.patch"
 
 S = "${WORKDIR}/git"
 
