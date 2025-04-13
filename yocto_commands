@@ -1,0 +1,35 @@
+source oe-init-build-env : 
+    - it is script located in topdirectory of build system ex.poky
+    - configures build enviornment
+    - it initializes the shell to run the bitbake commands by updating the PATH variable for to include dir where build tools are located.
+    - -it changes dir to build if it is present of creates one if not.
+
+bitbake core-image-full-cmdline
+    -  When you need a fully functional command-line interface for applications.
+    for debugging purposes, where you may require additional command-line tools.
+
+bitbake-layers show-layers 
+    - to check what layers are present in our build and their prority.
+
+bitbake-layers create-layer ../meta-mylayer
+    - create a custom layer
+    - meta-mylayer is the name of the layer
+
+bitbake-layers add-layer ../meta-mylayer/
+    - to add the created layer to bblayerc.conf
+
+bitbake -e <recipe name> | grep ^PN= : it gives the package name 
+bitbake -e <recipe name> | grep ^PV= : it gives package version
+bitbake -e <recipe name> | grep ^PR= : it gives package revision
+bitbake -e <recipe name> | grep ^WORKDIR= : workdir for a recipe which is in /tmp/work it will be separate for each dir.
+    ex. naming convention is "PN/PV-PR"
+        ganesh@ganesh:~/GANESH/Yocto/yocto_tutorial/poky/meta/recipes-connectivity/openssh$ bitbake -e openssh | grep ^WORKDIR=
+        WORKDIR="/home/ganesh/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/openssh/8.9p1-r0"
+
+bitbake -e <recipe name> | grep ^TMPDIR= : it will 
+        ganesh@ganesh:~/GANESH/Yocto/yocto_tutorial/poky/meta/recipes-connectivity/openssh$ bitbake -e openssh | grep ^TMPDIR=
+        TMPDIR="/home/ganesh/GANESH/Yocto/yocto_tutorial/sources/tmp"
+
+bitbake -e <recipe name > | grep ^S= : The source file for a reciepe can be located here.
+        ganesh@ganesh:~/GANESH/Yocto/yocto_tutorial/poky/meta/recipes-connectivity/openssh$ bitbake -e openssh | grep ^S=
+        S="/home/ganesh/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/openssh/8.9p1-r0/openssh-8.9p1"

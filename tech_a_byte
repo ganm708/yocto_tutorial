@@ -1,0 +1,231 @@
+Tools Required	
+	-Linux machine/VM(Prefered Ubuntu)
+	-Vscode, PICOCOM utility tool
+	-Beaglebone black, FTDI, 
+
+
+
+=============================================================================
+Pull latest poky branch for reuqired yocto version here i am using kirkstone
+then make  changes to local.conf file and add SOURCES, DL_DIR, TMPDIR, SSTATE_DIR paths so as to speed up the build process. Here hardware i am using is beaglebone black.
+
+SOURCES = "/home/ganesh/GANESH/Yocto/yocto_tutorial/sources"
+SSTATE_DIR ?= "${SOURCES}/sstate-cache"
+DL_DIR ?= "${SOURCES}/downloads"
+TMPDIR = "${SOURCES}/tmp"
+
+Added below in local.conf so as te remove old images and free up space
+RM_OLD_IMAGE = "1"
+
+On the other hand, INHERIT += "rm_work" activates the rm_work class, which automatically removes temporary working files associated with recipes after they have been built successfully. Below can cause issues when we try to build and recipe and see if it is availabe in WORKDRI as this will remove the generated config files as the command succeeds. So use it wisely.
+INHERIT += "rm_work"
+
+build the image 
+
+Path below will show yocto version
+/home/ganesh/GANESH/Yocto/yocto_tutorial/poky/meta-yocto-bsp/conf/layer.conf
+
+once poky is pulled and required changes are done in local.conf build the image 
+bitbake -k core-image-full-cmdline
+	-there are multiple options to build the image 
+	1. core-image-minimal: When developing low-resource systems.For bare-metal
+	2. core-image-full-cmdline : When you need a fully functional command-line interface for applications.For debugging purposes, where you may require additional command-line tools.
+	3. core-image-sato : Sato is a graphical environment. When developing consumer-facing devices that require a graphical UI.In projects where user interaction is critical, such as kiosks or tablets.
+	4. core-image-weston: It is suitable for modern applications that require advanced graphics and performance improvements compared to X11.
+	5. meta-toolchain : It’s useful for developers who want to compile applications for deployment on the target device without running a full Yocto build within that device. When we want to develop and compile app for deployment on yocto-build images from external machine.
+	6. meta-ide-support: This target provides the necessary components for integrating Yocto with IDEs like Eclipse.
+	
+	
+We used core-image-full-cmdline sa we will be using cmd line for all the development.
+
+once the image is build it will be at location 
+ganesh@ganesh:~/GANESH/Yocto/yocto_tutorial/sources/tmp/deploy/images/beaglebone-yocto$
+here we will be using core-image-full-cmdline-beaglebone-yocto-20250406075945.rootfs.wic to falsh on eaglebone black.
+
+To flash we will be using balena etcher tool and picocom cmd line utility to connect to beaglebone once we falsh it.
+	- picocom -b 115200 /dev/ttyUSB0
+	- 1st connect ftdi and check if connection is done use dmesg | grep ftdi
+	- power up beaglebone black 
+	- once the kernel is started leave the boot button
+	- 
+=====================================================================================================================
+local.conf
+	- defines the configurations to be included in a local build system
+	- It is customizable and has variables like MACHINE, DISTRO, PACKAGE_CLASS, DL_DIR
+	- Direclty impacts the build process by altering how packages are managed and what features are included in the image.
+	- 
+=====================================================================================================================
+bblayers.conf
+	- It specifies which layers to be included in the build
+	-  it is less customizable for a project.
+	- Variable is BBLAYERS
+	- imapcts the build if incorrect layer is included or layer is missing.
+	- 
+=====================================================================================================================
+Creating and adding layer 
+	- to check what layers are present in our build use 
+		bitbake-layers show-layers  below is its output 
+		ganesh@ganesh:~/GANESH/Yocto/yocto_tutorial/poky/build$ bitbake-layers show-layers
+NOTE: Starting bitbake server...
+layer                 path                                      priority
+==========================================================================
+meta                  /home/ganesh/GANESH/Yocto/yocto_tutorial/poky/meta  5
+meta-poky             /home/ganesh/GANESH/Yocto/yocto_tutorial/poky/meta-poky  5
+meta-yocto-bsp        /home/ganesh/GANESH/Yocto/yocto_tutorial/poky/meta-yocto-bsp  5
+ganesh@ganesh:~/GANESH/Yocto/yocto_tutorial/poky/build$ 
+	-here it shows layer name, path and its priority. Here priority is important as we may have same recipe in two layers so for build process to understand which recipe to be considered the priority is considered. Meta-eaton layer has highest priority i.e. 100 as we have same recipes in open source layers and meta-eaton but we want to use recipes from meta-eaton so we have its priority as highest. Higher the no top most is the priority
+
+	-Create layer command
+	- bitbake-layer create-layer <path to the layer> <layer-name>
+	- ex. ganesh@ganesh:~/GANESH/Yocto/yocto_tutorial/poky/build$ bitbake-layers create-layer ../meta-mylayer
+		NOTE: Starting bitbake server...
+		Add your new layer with 'bitbake-layers add-layer ../meta-mylayer
+	- once the layer is created it has few files generated which are
+	ganesh@ganesh:~/GANESH/Yocto/yocto_tutorial/poky/meta-mylayer$ tree	.
+		├── conf
+		│   └── layer.conf
+		├── COPYING.MIT
+		├── README
+		└── recipes-example
+			└── example
+				└── example_0.1.bb
+	layer.conf file has layer name, yocto compatible version and priority.
+	BY default the layer can see all the .bb and .bbappned files from the recipes in the layer.
+	-Once the layer is created we need to add the layer to do so use
+	- ganesh@ganesh:~/GANESH/Yocto/yocto_tutorial/poky/build$ bitbake-layers add-layer ../meta-mylayer/
+	- conf dir in the created layer has an ex. recipe.
+=====================================================================================================================
+Useful variables:
+	- name of a recipe is defined as such that "PN, PV, PR"
+	- PN = Package Name, PV = Package Version, PR = Package Revision
+	- to get above data we need to use command as bitbake -e <recipe name> | grep ^PV=
+	- ex.  bitbake -e openssh | grep ^PV=  
+		   	PV="8.9p1"
+			bitbake -e openssh | grep ^PN=
+            PN="openssh"
+			bitbake -e openssh | grep ^PR=
+			PR="r0"
+=====================================================================================================================
+	- WORKDIR = During the build process, the WORKDIR is where source files are unpacked, and patches are applied. For example, when you use the do_fetch task, the source code is retrieved and placed into this directory.
+    All major build tasks (fetching, configuring, compiling, installing) occur within the WORKDIR.
+	bitbake -e openssh | grep ^WORKDIR=
+	WORKDIR="/home/ganesh/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/openssh/8.9p1-r0"
+=====================================================================================================================
+
+	- Source Dir is same as the build diretory S = B it has the executables which are then copied to destination .i.e. image dir	
+	- bitbake -e openssh | grep ^S=
+	S="/home/ganesh/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/openssh/8.9p1-r0/openssh-8.9p1"
+=====================================================================================================================
+	- bitbake -e openssh | grep ^B=
+	B="/home/ganesh/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/openssh/8.9p1-r0/openssh-8.9p1"
+=====================================================================================================================
+	- bitbake -e openssh | grep ^D= destination dir is the image dir
+	D="/home/ganesh/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/openssh/8.9p1-r0/image"
+
+===================================================================================================================
+Variable Assignment
+-	?= :This operator is used to assign a default value to a variable, but it only assigns that value if the variable has not already been defined. If the variable is already set, the ?= operator will not override the existing value.
+ex. var ?= "one"	var ?= "one three"
+	var ?= "two"	var ?= "two"
+o/p var = one		var = one three
+---------------------------------------------------------------------------------------------------------------------
+-	??= :This is used to assign the default value to varibale. But it is a weak assignment. It can be overridden. If multiple assignments are done with this type, the the last one will be considered.
+ex.  var ??= "one"	var ??= "one three" 	var ?= "one"
+	 var ??= "two"	var ??= "two"			var ??= "two"
+o/p: var = two		var = two 				var =  one (here ?= has priority ove ??=)
+----------------------------------------------------------------------------------------------------------------------
+- = :This is a simple variable assignment. It requires " " and spaces are significant. But variables are expanded at the end.
+ex. 	var = " one "			var = "two three"
+		var = " two three"		var ?= "four"
+o/p.	var = two three 		var = two three
+---------------------------------------------------------------------------------------------------------------------
+:= :This is an immediate variable expansion. The value assigned is expanded immediately i.e as soon as we assign the value to variable it is assigned to it means it will have latest value
+ex	var := " one "		var = "one"
+	var := "four five"	var := "four five"
+o/p var = four five		var = "four five"
+---------------------------------------------------------------------------------------------------------------------
++= : This appends a value to a variable. The operator inserts a space between the current value and appended value. It takes effect immediately.
+ex 	var = "one"
+	var =+ "two"
+o/p	var "one two"
+---------------------------------------------------------------------------------------------------------------------
+=+ : This prepends a value to a variable, The operator inserts a space between the current value and prepended value. It takes effect immediately. It will not wait till all variables are assigned values.
+ex	var := "two"	
+	var =+ "one"
+o/p var = one two
+---------------------------------------------------------------------------------------------------------------------
+.= : This appends a value to a variable. The operator inserts no space between the current value and appended value. It takes effect immediately. It will not wait till all variables are assigned values.
+ex 	var = "one"
+	var .= "two"
+o/p	var "onetwo"
+---------------------------------------------------------------------------------------------------------------------
+=. : This prepends a value to a variable. The operator inserts no space between the current value and prepended value. It takes effect immediately.
+ex 	var = "one"
+	var =. "two"
+o/p	var "twoone"
+---------------------------------------------------------------------------------------------------------------------
+:append :This appends a value to a variable. The operator inserts no space between the current value and appended value. The effects are applied at variable expansion time rather than being immediately applied.
+ex	var = "one"
+	var:append = "two" #this will be expanded at last i.e once var = "three" is expanded then this will come in play
+	var = "three"
+o/p	var = threetwo
+---------------------------------------------------------------------------------------------------------------------
+:prepend :This appends a value to a variable. The operator inserts no space between the current value and appended value. The effects are applied at variable expansion time rather than being immediately applied.
+ex	var = "one"			
+	var:prepend = "two"
+o/p	var = "three"
+---------------------------------------------------------------------------------------------------------------------
+:remove : This remove values from lists. Specifying a value for removal causes all occurrences of that value to be removed from the variable. The effects are applied at variable expansion time rather than being immediately applied.
+ex	var = "one two three one four onefive"	var = "one two three one four onefive"
+	var:remove	= "one"						var:remove	= "one"
+o/p	var = two three four onefive			var += "six"
+										o/p	var = two three four onefive six  #remove expanded after above line was expanded
+====================================================================================================================
+Create your 1st recipe
+	- We need to write a bb file for the recipe and the SRC_URI for it should be helloworld.c file.
+	- runnig a recipe step by step
+		- bitbake -c fetch helloworld 
+	In our case helloworld.c is already on the local machine so it will not be found in DL_DIR i.e. /sources/downloads but if we fetch it from git or web then it will be stored in DL_DIR i.e. /sources/downloads
+---------------------------------------------------------------------------------------------------------------------
+		- bitbake -c unpack helloworld 
+##Why the File Was Not in WORKDIR After do_fetch:
+The do_fetch task only ensures that the source file is available for the build process. It does not unpack or move the file into the WORKDIR.
+The do_unpack task is responsible for placing the file in the WORKDIR.
+ex.
+ganesh@ganesh:~/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/helloworld/1.0-r0$ ls
+build  helloworld.c  source-date-epoch  temp
+
+ganesh@ganesh:~/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/helloworld/1.0-r0$ cd build/
+ganesh@ganesh:~/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/helloworld/1.0-r0/build$ ls
+after unpack we have patch task but as we are not doing any patch here it will be skipped
+ex bitbake -c patch helloworld
+
+Here build dir is created but it is empty so after do_compile binary will be present in build dir
+---------------------------------------------------------------------------------------------------------------------
+bitbake -c compile helloworld on compilation the build dir will have the binary generated for helloworld
+ex.
+ganesh@ganesh:~/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/helloworld/1.0-r0$ ls
+build  configure.sstate  deploy-source-date-epoch  helloworld.c  recipe-sysroot  recipe-sysroot-native  source-date-epoch  temp
+ganesh@ganesh:~/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/helloworld/1.0-r0$ cd build/
+ganesh@ganesh:~/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/helloworld/1.0-r0/build$ ls
+helloworld
+---------------------------------------------------------------------------------------------------------------------
+bitbake -c install helloworld
+-the do_install task installs the compiled binary and other necessary files into the ${D} (destination directory). This directory is a staging area that mimics the target root filesystem structure. After the do_install task completes successfully, you should look for the installed files in the image directory under the WORKDIR.
+ex. Image dir is created as when install was run which is has /usr/bin which mimics the target where we will be having helloworld binary.
+anesh@ganesh:~/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/helloworld/1.0-r0/image$ tree
+.
+└── usr
+    └── bin
+        └── helloworld
+---------------------------------------------------------------------------------------------------------------------
+bitbake -c package helloworld
+ the do_package task packages the installed files (from the image directory) into a package format such as .ipk, .deb, or .rpm. These packages are stored in the deploy directory under the WORKDIR.
+Above command has been successful as in we can see package and package-split dir 
+ ex.
+ ganesh@ganesh:~/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/helloworld/1.0-r0$ ls
+build             debugsources.list         helloworld.c  package         pkgdata          pseudo          recipe-sysroot-native  sstate-install-deploy_source_date_epoch
+configure.sstate  deploy-source-date-epoch  image         packages-split  pkgdata-sysroot  recipe-sysroot  source-date-epoch      temp
+=====================================================================================================================
+
+
