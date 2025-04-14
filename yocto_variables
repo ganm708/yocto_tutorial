@@ -77,3 +77,4 @@ name of a recipe is defined as such that "PN, PV, PR"
     - WORKDIR = During the build process, the WORKDIR is where source files are unpacked, and patches are applied. For example, when you use the do_fetch task, the source code is retrieved and placed into this directory.
     All major build tasks (fetching, configuring, compiling, installing) occur within the WORKDIR.
 
+x

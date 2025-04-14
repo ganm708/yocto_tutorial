@@ -227,5 +227,95 @@ Above command has been successful as in we can see package and package-split dir
 build             debugsources.list         helloworld.c  package         pkgdata          pseudo          recipe-sysroot-native  sstate-install-deploy_source_date_epoch
 configure.sstate  deploy-source-date-epoch  image         packages-split  pkgdata-sysroot  recipe-sysroot  source-date-epoch      temp
 =====================================================================================================================
+One More test to pull the source from git and run build tasks individually
+https://github.com/Munawar-git/YoctoTutorials/blob/master/09_Build_Tasks/09_Build_Tasks.md
+-------------------------------------------------------------------------------
+Build tasks we will be performing are
+	- do_fetch
+	- do_unpack
+	- do_fetch
+	- do_configure
+	- do_compile
+	- do_install
+	- do_package
+	- do_image
 
 
+
+	- Created a recipe named bbb-example and pushed it to git added the same at path: /home/ganesh/GANESH/Yocto/yocto_tutorial/poky/meta-mylayer/recipes-example/bbb-example/bbb-exapmple.bb
+	- verified the download dir /sources/downloads and aslo the /git that no source for bbb-example is available
+	ex. ganesh@ganesh:~/GANESH/Yocto/yocto_tutorial/sources/downloads$ ls | grep bbb-example
+
+	ganesh@ganesh:~/GANESH/Yocto/yocto_tutorial/sources/downloads/git2$ ls | grep bbb-example
+ganesh@ganesh:~/GANESH/Yocto/yocto_tutorial/sources/downloads/git2$ 
+
+once we add the correct SRC_URI and the SRCREV correctly do_fetch task is correclty executed and the source is visible in downloads/git
+ex. ganesh@ganesh:~/GANESH/Yocto/yocto_tutorial/sources/downloads/git2$ ls | grep ganm
+github.com.ganm708.yocto_tutorial.git
+github.com.ganm708.yocto_tutorial.git.done
+
+bbb-example.bb should be in meta-mylayer i.e. on local system and the bbb-example.c should be on the git repo if we are fetching the source from git.
+ and SRCREV should be the commit id where the bbb-example.c was pushed.
+================================================================================
+2nd step is do_unpack task which unpacks the downloaded source in the WORKDIR for bbb-example recipe WORKDIR is as follows.
+ganesh@ganesh:~/GANESH/Yocto/yocto_tutorial/poky/build$ bitbake -e bbb-example | grep ^WORKDIR=
+WORKDIR="/home/ganesh/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/bbb-example/1.0-r0"
+do_unpack cmd 
+	- bitbake -c do_unpack bbb-example	
+ex. ganesh@ganesh:~/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/bbb-example/1.0-r0$ ls
+git  recipe-sysroot  recipe-sysroot-native  source-date-epoch  temp
+	- here we can see that git dir is created and has the source file which we pushed.
+
+================================================================================
+next step is do_patch which is optional if we want to modify the source as per our requirement we will be adding the patch.
+bitbake -c do_patch bbb-example
+
+============================================================================
+next step is the do_configure step which is optional one 
+for  detail ref: https://www.youtube.com/watch?v=YuB_bxjFePs&ab_channel=Tech-A-Byte
+================================================================================
+do_compile 
+bitbake -c do_compile bbb-example
+ref : https://www.youtube.com/watch?v=RtAAO6uZ59k&ab_channel=Tech-A-Byte
+    ${CC} ${CFLAGS} ${LDFLAGS} ${S}/bbb-example.c -o bbb-example
+	-CC: Cross compiler 
+ganesh@ganesh:~/GANESH/Yocto/yocto_tutorial/poky/build$ bitbake -e bbb-example | grep CC=
+export BUILD_CC="gcc "
+export CC="arm-poky-linux-gnueabi-gcc  -mfpu=neon -mfloat-abi=hard -mcpu=cortex-a8 -fstack-protector-strong  -O2 -D_FORTIFY_SOURCE=2 -Wformat -Wformat-security -Werror=format-security --sysroot=/home/ganesh/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/bbb-example/1.0-r0/recipe-sysroot
+-----------------------------------------------------------------------
+	- CFLAGS contains the compiler flags used to optimize and debug the code during compilation. Auto set by yocto for target machine
+	bitbake -e bbb-example | grep CFLAGS=
+There are multiple CFLAGS but we are interested in target once
+TARGET_CFLAGS=" -O2 -pipe -g -feliminate-unused-debug-types -fmacro-prefix-map=/home/ganesh/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/bbb-example/1.0-r0=/usr/src/debug/bbb-example/1.0-r0                      -fdebug-prefix-map=/home/ganesh/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/bbb-example/1.0-r0=/usr/src/debug/bbb-example/1.0-r0                      -fdebug-prefix-map=/home/ganesh/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/bbb-example/1.0-r0/recipe-sysroot=                      -fdebug-prefix-map=/home/ganesh/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/bbb-example/1.0-r0/recipe-sysroot-native= "
+--------------------------------------------------------------------------------
+	- ${LDFLAGS} contains the flags passed to the linker during the linking stage of compilation. bitbake -e bbb-example | grep LDFLAGS=
+TARGET_LDFLAGS="-Wl,-O1 -Wl,--hash-style=gnu -Wl,--as-needed -fmacro-prefix-map=/home/ganesh/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/bbb-example/1.0-r0=/usr/src/debug/bbb-example/1.0-r0                      -fdebug-prefix-map=/home/ganesh/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/bbb-example/1.0-r0=/usr/src/debug/bbb-example/1.0-r0                      -fdebug-prefix-map=/home/ganesh/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/bbb-example/1.0-r0/recipe-sysroot=                      -fdebug-prefix-map=/home/ganesh/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/bbb-example/1.0-r0/recipe-sysroot-native=  -Wl,-z,relro,-z,now"
+
+Component			Description
+${CC}				Cross-compiler for the target architecture (e.g., arm-poky-linux-gnueabi-gcc).
+${CFLAGS}			Compiler flags for optimization and debugging (e.g., -O2, -mcpu=cortex-a8).
+${LDFLAGS}			Linker flags for linking against the correct libraries (e.g., --sysroot=<path>).
+${S}				Source directory where the source file (bbb-example.c) is located.
+${S}/bbb-example.c	Path to the source file to be compiled.
+-o bbb-example		Specifies the name of the output binary (bbb-example).
+
+
+berfore executing do_compile we see /git has no binary file it has only .c
+ganesh@ganesh:~/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/bbb-example/1.0-r0/git$ ls
+bbb-example.c  
+
+but do_compile step binary is generated as below
+ganesh@ganesh:~/GANESH/Yocto/yocto_tutorial/sources/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/bbb-example/1.0-r0/git$ ls
+bbb-example bbb-example.c   
+
+===============================================================================
+do_install task
+do_install(){
+    ##bindir = /usr/bin of the target system i.e. in our case beaglebone
+    install -d ${D}${bindir} ##creates  dir in the destination i.e. image dir which will have /usr/bin same as any liux file system
+    install -m 0755 bbb-example ${D}${bindir}/  ## copies the binary to destination.
+}
+==============================================================================
+Generating and applying patch
+refer: https://github.com/Munawar-git/YoctoTutorials/blob/master/10_Patch/10_Patch.md
+===============================================================================
